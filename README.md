@@ -11,7 +11,8 @@ claude-skills/
 ├── atdd/                the ATDD skill: SKILL.md, references/, scripts/, evals/
 ├── git-commit-message/  a Conventional Commits message for the current changes: SKILL.md
 ├── handover/            the handover skill: SKILL.md, references/, scripts/
-└── turn-duration-check/ a turn's duration, tokens and API-equivalent cost: SKILL.md, scripts/
+├── turn-duration-check/ a turn's duration, tokens and API-equivalent cost: SKILL.md, scripts/
+└── ui-polish/           focused UI polish of an existing frontend: SKILL.md, references/
 ```
 
 ## Get the ZIPs
@@ -22,6 +23,7 @@ Download the latest build of each skill:
 - [git-commit-message.zip](https://github.com/turc1656/claude-skills/releases/latest/download/git-commit-message.zip)
 - [handover.zip](https://github.com/turc1656/claude-skills/releases/latest/download/handover.zip)
 - [turn-duration-check.zip](https://github.com/turc1656/claude-skills/releases/latest/download/turn-duration-check.zip)
+- [ui-polish.zip](https://github.com/turc1656/claude-skills/releases/latest/download/ui-polish.zip)
 
 These links always serve the newest release. Older versions are on this repository's **Releases** page, or build the ZIPs yourself as below. `dist/` is git-ignored, so the ZIPs are never committed.
 
@@ -32,6 +34,7 @@ python build_zip.py atdd
 python build_zip.py git-commit-message
 python build_zip.py handover
 python build_zip.py turn-duration-check
+python build_zip.py ui-polish
 ```
 
 The ZIP has the skill folder at its top level (`atdd/SKILL.md`, `atdd/references/...`, `atdd/scripts/...`) and leaves out `evals/`. The script refuses to build if the frontmatter `name` differs from the folder name, the description is over 200 characters, or a field outside the Agent Skills spec is present, because each of those fails the upload. The one extra field it allows is `disable-model-invocation`, which the upload also accepts.
@@ -71,7 +74,7 @@ Sync does not run when Claude Code uses an API key or a cloud provider such as B
 
 ## Publish a release
 
-Run every self-test, build all four ZIPs, then attach them to a new GitHub release. Attach all four to every release, under these exact names, even when only one skill changed: the links in *Get the ZIPs* serve whichever release is latest.
+Run every self-test, build all five ZIPs, then attach them to a new GitHub release. Attach all five to every release, under these exact names, even when only one skill changed: the links in *Get the ZIPs* serve whichever release is latest.
 
 ```bash
 python atdd/scripts/atdd_lock.py --self-test
@@ -81,6 +84,7 @@ python build_zip.py atdd
 python build_zip.py git-commit-message
 python build_zip.py handover
 python build_zip.py turn-duration-check
+python build_zip.py ui-polish
 gh release create <tag> dist/*.zip --title "<tag>" --notes "<what changed>"
 ```
 
@@ -91,10 +95,15 @@ gh release create <tag> dist/*.zip --title "<tag>" --notes "<what changed>"
 - Full behaviour: in a throwaway repository, `/atdd specify <story file>` must end with an approval request that shows complete test code and must not create `.atdd/`.
 - `/handover`: run `/skills` and look for `handover`, then in any project run `/handover verification run`. A new folder must appear under `~/.claude/handovers/<project>/` with `.handover.json` saying `complete`, and `git status` must be unchanged.
 - `/git-commit-message`: run `/skills` and look for `git-commit-message`, then in a repository with staged changes run `/git-commit-message`. It must reply with one commit message in a code block and leave `git status` unchanged.
+- `/ui-polish`: run `/skills` and look for `ui-polish`, then in a repository with a frontend run `/ui-polish audit <one page or component>`. It must reply with an audit in the format of `references/review-template.md` and edit nothing.
 
 ## The git-commit-message skill
 
 `/git-commit-message` writes a Conventional Commits message for the staged changes, the unstaged ones when nothing is staged, or a diff you paste. It never stages or commits. Its `allowed-tools` pre-approves only `git status`, `git diff` and `git rev-parse`, and `disable-model-invocation: true` means it runs only when you invoke it.
+
+## The ui-polish skill
+
+`/ui-polish <audit|plan|implement|verify> <scope>` polishes one surface of an existing frontend without redesigning it. `audit` and `plan` make no edits, `implement` runs only after you approve a plan, and `verify` checks the result at mobile and desktop widths and runs the frontend's lint, test and build. The rubric in `references/reference.md` covers hierarchy, spacing, typography, color, depth, tables, controls, states and responsive behavior; the target repository's own design guide and agent docs win over it. `disable-model-invocation: true` means it runs only when you invoke it.
 
 ## The handover skill
 
