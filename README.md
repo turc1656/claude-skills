@@ -95,15 +95,45 @@ gh release create <tag> dist/*.zip --title "<tag>" --notes "<what changed>"
 - Full behaviour: in a throwaway repository, `/atdd specify <story file>` must end with an approval request that shows complete test code and must not create `.atdd/`.
 - `/handover`: run `/skills` and look for `handover`, then in any project run `/handover verification run`. A new folder must appear under `~/.claude/handovers/<project>/` with `.handover.json` saying `complete`, and `git status` must be unchanged.
 - `/git-commit-message`: run `/skills` and look for `git-commit-message`, then in a repository with staged changes run `/git-commit-message`. It must reply with one commit message in a code block and leave `git status` unchanged.
+- `/turn-duration-check`: run `/skills` and look for `turn-duration-check`, then in a Claude Code session send any short prompt and run `/turn-duration-check`. It must quote that prompt and report its duration, tokens and API-equivalent cost.
 - `/ui-polish`: run `/skills` and look for `ui-polish`, then in a repository with a frontend run `/ui-polish audit <one page or component>`. It must reply with an audit in the format of `references/review-template.md` and edit nothing.
+
+## The atdd skill
+
+`/atdd` builds a feature against executable specifications in Dave Farley's style: acceptance tests written in the language of the problem domain, approved by you before any implementation, proven red, driven green while the approved files stay frozen, then verified and reviewed. `references/farley-atdd.md` digests the method and lists its sources.
+
+**Use.** `/atdd [mode] <target>`, or ask for acceptance test-driven development in plain words.
+
+- `/atdd #135` or `/atdd specify <story>`: start from a story (an issue number or URL, a ticket id, a file, or pasted requirements). After you approve, red, green and verify run on without further stops unless a gate forces one.
+- `/atdd red|green|verify <feature>`: resume a feature whose manifest exists under `.atdd/<feature>/`.
+- `/atdd amend <feature>`: the only way to change an approved file.
+- `/atdd status [feature]`: report manifests and drift. No edits.
+
+**Phases.**
+
+- **Specify:** fetch the story (as `docs/agents/issue-tracker.md` says, else with `gh` for a GitHub remote, else from pasted text), extract its acceptance criteria and cite where each came from, settle ambiguity, and choose the seam: the highest public interface that exercises the behaviour end to end, with third-party systems stubbed. Then write three layers: test cases in domain language, a domain layer (the DSL), and a protocol driver. Criteria no public interface can observe are listed as not acceptance-testable, with a suggested manual check. Specify ends in an approval request that shows the complete code.
+- **Red:** the frozen command must fail because the behaviour is missing, not because the harness is broken.
+- **Green:** implementation changes only, one acceptance test at a time. Editing a frozen file, skipping a test, loosening an assertion or letting a driver bypass the system are not allowed; a wrong specification goes through `amend`.
+- **Verify:** the repo's documented quality gate, then a review against the story.
+
+**Gates.**
+
+- No implementation starts, and no acceptance test runs against the system, until you approve the proposed files in chat. Only an explicit yes counts.
+- On approval, `scripts/atdd_lock.py` freezes the tests and their support files (domain layer, drivers, stubs, fixtures) by SHA-256 hash in `.atdd/<feature>/manifest.json`, together with the run command and its working directory. Drift stops the work, and every change to a frozen file goes through `amend` and a fresh approval.
+- `record` runs the frozen command itself, stores the real exit code, and enforces the order red, green, verify. A manual record or a waived red is flagged in the manifest.
+- The manifest is meant to be committed with the feature as its traceability record. The skill stages or commits only when you or the repo's rules allow it.
+- No new dependencies: the tests use the framework the repo already runs, and Gherkin only where a Gherkin runner already exists.
+- The issue tracker is read-only unless you ask otherwise in the session.
+
+**Companion skills.** When Matt Pocock's engineering skills are installed, it calls `grilling` to settle ambiguous criteria, `tdd` for the unit-level loop inside green, `codebase-design` for seam vocabulary, and `code-review` for the final review. Without them it uses the compact stand-ins in `references/fallbacks.md`.
+
+**Any language.** `references/frameworks.md` holds per-stack defaults for detecting the stack and running one file or the suite. The target repo's own `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md` and `docs/agents/*.md` win over them.
+
+**Without a repository** (plain chat), specify can still draft the specifications in the approval-request format; red, green and verify need a repository with a test runner.
 
 ## The git-commit-message skill
 
 `/git-commit-message` writes a Conventional Commits message for the staged changes, the unstaged ones when nothing is staged, or a diff you paste. It never stages or commits. Its `allowed-tools` pre-approves only `git status`, `git diff` and `git rev-parse`, and `disable-model-invocation: true` means it runs only when you invoke it.
-
-## The ui-polish skill
-
-`/ui-polish <audit|plan|implement|verify> <scope>` polishes one surface of an existing frontend without redesigning it. `audit` and `plan` make no edits, `implement` runs only after you approve a plan, and `verify` checks the result at mobile and desktop widths and runs the frontend's lint, test and build. The rubric in `references/reference.md` covers hierarchy, spacing, typography, color, depth, tables, controls, states and responsive behavior; the target repository's own design guide and agent docs win over it. `disable-model-invocation: true` means it runs only when you invoke it.
 
 ## The handover skill
 
@@ -167,6 +197,31 @@ Whether every decision, approval and constraint made it in is the skill's review
 - Must-keep content (decisions, rejected alternatives, pending approvals, uncommitted work, running processes, constraints) always beats the 80–200-line length guideline.
 - Git detail is in proportion to the task.
 - The handover itself makes no Git changes and runs no tests.
+
+## The turn-duration-check skill
+
+`/turn-duration-check` reports how long the previous turn of a Claude Code session took, how many tokens it used, and what those tokens would cost at current Claude API prices.
+
+**Use.** Run `/turn-duration-check` straight after the turn you want measured. Its description tells Claude to run it only when you invoke it.
+
+**How it works.**
+
+- The helper `scripts/turn_cost.py` reads this session's transcript, `~/.claude/projects/*/<session id>.jsonl`. A turn runs from your prompt to the last response before your next prompt; tool results, task notifications and system reminders are not prompts.
+- It counts each response once, from its last streamed line, adds the subagent transcripts that ran during the turn, and splits tokens by model into input, 5-minute and 1-hour cache writes, cache reads and output. Thinking tokens are already part of the output count.
+- The first run prints the report without cost and lists the price keys it needs. The skill then fetches Anthropic's pricing page, reads only those rates (never a price from memory), and runs the helper again with them. Fast mode, prompts over 100,000 tokens, US-only inference and web searches get their own keys when the turn used them.
+- Run directly, the helper also takes `--turn N` to measure another turn: 1 is the session's first, -1 (the default) the previous.
+
+**Output.** The helper's report unchanged, then one line naming the pricing URL and today's date. The cost is the API-equivalent figure: a subscription plan is not billed per token.
+
+**Checks and limits.**
+
+- Before pricing, the skill checks that the quoted prompt is your last message before the command and that the start time matches. If the helper missed or merged a prompt, it says so instead of reporting the wrong turn.
+- If the pricing page cannot be fetched or lacks a key, you get the report without those costs and a note naming the keys that could not be priced.
+- It reads a Claude Code session transcript, so it works only in Claude Code.
+
+## The ui-polish skill
+
+`/ui-polish <audit|plan|implement|verify> <scope>` polishes one surface of an existing frontend without redesigning it. `audit` and `plan` make no edits, `implement` runs only after you approve a plan, and `verify` checks the result at mobile and desktop widths and runs the frontend's lint, test and build. The rubric in `references/reference.md` covers hierarchy, spacing, typography, color, depth, tables, controls, states and responsive behavior; the target repository's own design guide and agent docs win over it. `disable-model-invocation: true` means it runs only when you invoke it.
 
 ## Tests for the skill itself
 
