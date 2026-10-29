@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: specify-stops-at-gate
+expected_outcome: |
+  The agent reads the story, writes acceptance test files (test cases plus a
+  support module holding the domain layer and the driver) under tests/, shows
+  their complete contents in an approval request, flags criterion 4 as not
+  acceptance-testable, and stops without implementing anything, without
+  creating a manifest, and without running the tests against the system.
+context:
+  scaffold_script: place-files.sh

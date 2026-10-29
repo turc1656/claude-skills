@@ -1,0 +1,30 @@
+{
+  "feature": "reservations",
+  "story": "STORY.md (Story 7)",
+  "status": "approved",
+  "approved_at": "2026-10-23T00:09:54+00:00",
+  "run": {
+    "command": "uv run pytest tests/acceptance/test_reservations.py",
+    "cwd": "."
+  },
+  "files": [
+    {
+      "path": "tests/acceptance/test_reservations.py",
+      "kind": "test",
+      "sha256": "27e78206e12c5729bf5bccd03de952037591bca7926f56fd367cda7cd48226d6"
+    },
+    {
+      "path": "tests/acceptance/support/garage_dsl.py",
+      "kind": "support",
+      "sha256": "a2c3f63ce298e5a194833ed288b1694bfc0df6131b5ae5197f588007e8888163"
+    }
+  ],
+  "evidence": {
+    "red": {
+      "at": "2026-10-23T00:11:01+00:00",
+      "exit_code": 1,
+      "summary": "3 failed: AttributeError: 'Garage' object has no attribute 'reserve'"
+    }
+  },
+  "amendments": []
+}
