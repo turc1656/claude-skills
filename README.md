@@ -9,6 +9,7 @@ claude-skills/
 ├── build_zip.py         builds dist/<skill>.zip and checks the frontmatter the upload enforces
 ├── dist/                built ZIPs (git-ignored; published as release assets)
 ├── atdd/                the ATDD skill: SKILL.md, references/, scripts/, evals/
+├── git-commit-message/  a Conventional Commits message for the current changes: SKILL.md
 ├── handover/            the handover skill: SKILL.md, references/, scripts/
 └── turn-duration-check/ a turn's duration, tokens and API-equivalent cost: SKILL.md, scripts/
 ```
@@ -18,6 +19,7 @@ claude-skills/
 Download the latest build of each skill:
 
 - [atdd.zip](https://github.com/turc1656/claude-skills/releases/latest/download/atdd.zip)
+- [git-commit-message.zip](https://github.com/turc1656/claude-skills/releases/latest/download/git-commit-message.zip)
 - [handover.zip](https://github.com/turc1656/claude-skills/releases/latest/download/handover.zip)
 - [turn-duration-check.zip](https://github.com/turc1656/claude-skills/releases/latest/download/turn-duration-check.zip)
 
@@ -27,11 +29,12 @@ These links always serve the newest release. Older versions are on this reposito
 
 ```bash
 python build_zip.py atdd
+python build_zip.py git-commit-message
 python build_zip.py handover
 python build_zip.py turn-duration-check
 ```
 
-The ZIP has the skill folder at its top level (`atdd/SKILL.md`, `atdd/references/...`, `atdd/scripts/...`) and leaves out `evals/`. The script refuses to build if the frontmatter `name` differs from the folder name, the description is over 200 characters, or a field outside the Agent Skills spec is present, because each of those fails the upload.
+The ZIP has the skill folder at its top level (`atdd/SKILL.md`, `atdd/references/...`, `atdd/scripts/...`) and leaves out `evals/`. The script refuses to build if the frontmatter `name` differs from the folder name, the description is over 200 characters, or a field outside the Agent Skills spec is present, because each of those fails the upload. The one extra field it allows is `disable-model-invocation`, which the upload also accepts.
 
 ## Upload to Customize → Skills
 
@@ -68,13 +71,14 @@ Sync does not run when Claude Code uses an API key or a cloud provider such as B
 
 ## Publish a release
 
-Run every self-test, build all three ZIPs, then attach them to a new GitHub release. Attach all three to every release, under these exact names, even when only one skill changed: the links in *Get the ZIPs* serve whichever release is latest.
+Run every self-test, build all four ZIPs, then attach them to a new GitHub release. Attach all four to every release, under these exact names, even when only one skill changed: the links in *Get the ZIPs* serve whichever release is latest.
 
 ```bash
 python atdd/scripts/atdd_lock.py --self-test
 python handover/scripts/handover.py --self-test
 python turn-duration-check/scripts/test_turn_cost.py
 python build_zip.py atdd
+python build_zip.py git-commit-message
 python build_zip.py handover
 python build_zip.py turn-duration-check
 gh release create <tag> dist/*.zip --title "<tag>" --notes "<what changed>"
@@ -86,6 +90,11 @@ gh release create <tag> dist/*.zip --title "<tag>" --notes "<what changed>"
 - Cloud session: start one on any repository and run the same two commands.
 - Full behaviour: in a throwaway repository, `/atdd specify <story file>` must end with an approval request that shows complete test code and must not create `.atdd/`.
 - `/handover`: run `/skills` and look for `handover`, then in any project run `/handover verification run`. A new folder must appear under `~/.claude/handovers/<project>/` with `.handover.json` saying `complete`, and `git status` must be unchanged.
+- `/git-commit-message`: run `/skills` and look for `git-commit-message`, then in a repository with staged changes run `/git-commit-message`. It must reply with one commit message in a code block and leave `git status` unchanged.
+
+## The git-commit-message skill
+
+`/git-commit-message` writes a Conventional Commits message for the staged changes, the unstaged ones when nothing is staged, or a diff you paste. It never stages or commits. Its `allowed-tools` pre-approves only `git status`, `git diff` and `git rev-parse`, and `disable-model-invocation: true` means it runs only when you invoke it.
 
 ## The handover skill
 

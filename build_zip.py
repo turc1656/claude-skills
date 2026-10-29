@@ -6,7 +6,8 @@ Usage:  python build_zip.py atdd
 The ZIP holds the skill folder at its top level (atdd/SKILL.md, atdd/references/...),
 leaves out evals/, __pycache__/ and .DS_Store, and checks the frontmatter rules the
 upload enforces: name equals the folder name, kebab-case, description 1-200 chars,
-only the six fields the Agent Skills spec allows.
+only the six fields the Agent Skills spec allows plus disable-model-invocation,
+which the upload also accepts.
 """
 import re
 import sys
@@ -14,7 +15,8 @@ import zipfile
 from pathlib import Path
 
 EXCLUDE_DIRS = {"evals", "__pycache__", "node_modules"}
-ALLOWED_KEYS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
+ALLOWED_KEYS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools",
+                "disable-model-invocation"}
 
 
 def check_frontmatter(skill_dir: Path) -> None:
