@@ -15,7 +15,13 @@ claude-skills/
 
 ## Get the ZIPs
 
-Download `atdd.zip`, `handover.zip` or `turn-duration-check.zip` from this repository's **Releases** page, or build them yourself as below. `dist/` is git-ignored, so the ZIPs are never committed.
+Download the latest build of each skill:
+
+- [atdd.zip](https://github.com/turc1656/claude-skills/releases/latest/download/atdd.zip)
+- [handover.zip](https://github.com/turc1656/claude-skills/releases/latest/download/handover.zip)
+- [turn-duration-check.zip](https://github.com/turc1656/claude-skills/releases/latest/download/turn-duration-check.zip)
+
+These links always serve the newest release. Older versions are on this repository's **Releases** page, or build the ZIPs yourself as below. `dist/` is git-ignored, so the ZIPs are never committed.
 
 ## Build the upload package
 
@@ -62,7 +68,7 @@ Sync does not run when Claude Code uses an API key or a cloud provider such as B
 
 ## Publish a release
 
-Run every self-test, build all three ZIPs, then attach them to a new GitHub release:
+Run every self-test, build all three ZIPs, then attach them to a new GitHub release. Attach all three to every release, under these exact names, even when only one skill changed: the links in *Get the ZIPs* serve whichever release is latest.
 
 ```bash
 python atdd/scripts/atdd_lock.py --self-test
